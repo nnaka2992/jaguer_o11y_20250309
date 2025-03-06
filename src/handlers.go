@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"net/http"
 	"math/rand"
 
@@ -33,7 +32,7 @@ func postUserAddHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id, name, email, password := genUser()
-	user, err := sqlc.DB.CreateUser(ctx, sqlc.CreateUserParams{id, name, email, password})
+	_, err := sqlc.DB.CreateUser(ctx, sqlc.CreateUserParams{id, name, email, password})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -60,7 +59,7 @@ func getUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// get user from database
-	user, err := sqlc.DB.GetUserByID(ctx, id)
+	_, err := sqlc.DB.GetUserByID(ctx, id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -82,7 +81,7 @@ func postItemAddHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	name, description, price := genItem()
-	item, err := sqlc.DB.CreateItem(ctx, sqlc.CreateItemParams{name, description, price})
+	_, err := sqlc.DB.CreateItem(ctx, sqlc.CreateItemParams{name, description, price})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -112,14 +111,14 @@ func getItemHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		var items []sqlc.Item
+		//var items []sqlc.Item
 		for _, id := range ids {
-			item, err := sqlc.DB.GetItemByID(ctx, id)
+			_, err := sqlc.DB.GetItemByID(ctx, id)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			items = append(items, item)
+			// items = append(items, item)
 		}
 		// return response to client
 		w.Header().Set("Content-Type", "application/json")
@@ -132,7 +131,7 @@ func getItemHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid item id", http.StatusBadRequest)
 		return
 	}
-	item, err := sqlc.DB.GetItemByID(ctx, uuid)
+	_, err = sqlc.DB.GetItemByID(ctx, uuid)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
