@@ -7,8 +7,9 @@ package sql
 
 import (
 	"context"
+	"database/sql"
 
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/google/uuid"
 )
 
 const createItem = `-- name: CreateItem :one
@@ -22,12 +23,12 @@ RETURNING id, name, description, price, created_at, updated_at
 
 type CreateItemParams struct {
 	Name        string
-	Description pgtype.Text
+	Description sql.NullString
 	Price       int64
 }
 
 func (q *Queries) CreateItem(ctx context.Context, arg CreateItemParams) (Item, error) {
-	row := q.db.QueryRow(ctx, createItem, arg.Name, arg.Description, arg.Price)
+	row := q.db.QueryRowContext(ctx, createItem, arg.Name, arg.Description, arg.Price)
 	var i Item
 	err := row.Scan(
 		&i.ID,
@@ -50,13 +51,13 @@ RETURNING id, user_id, item_id, quantity, created_at
 `
 
 type CreateOrderParams struct {
-	UserID   pgtype.Text
-	ItemID   pgtype.UUID
+	UserID   sql.NullString
+	ItemID   uuid.NullUUID
 	Quantity int32
 }
 
 func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error) {
-	row := q.db.QueryRow(ctx, createOrder, arg.UserID, arg.ItemID, arg.Quantity)
+	row := q.db.QueryRowContext(ctx, createOrder, arg.UserID, arg.ItemID, arg.Quantity)
 	var i Order
 	err := row.Scan(
 		&i.ID,
@@ -85,7 +86,7 @@ type CreateUserParams struct {
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
-	row := q.db.QueryRow(ctx, createUser,
+	row := q.db.QueryRowContext(ctx, createUser,
 		arg.ID,
 		arg.Name,
 		arg.Email,
@@ -108,8 +109,8 @@ DELETE FROM items
 WHERE id = $1
 `
 
-func (q *Queries) DeleteItem(ctx context.Context, id pgtype.UUID) error {
-	_, err := q.db.Exec(ctx, deleteItem, id)
+func (q *Queries) DeleteItem(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteItem, id)
 	return err
 }
 
@@ -123,13 +124,13 @@ RETURNING id, user_id, item_id, quantity, created_at
 `
 
 type DeleteOrderParams struct {
-	UserID   pgtype.Text
-	ItemID   pgtype.UUID
+	UserID   sql.NullString
+	ItemID   uuid.NullUUID
 	Quantity int32
 }
 
 func (q *Queries) DeleteOrder(ctx context.Context, arg DeleteOrderParams) (Order, error) {
-	row := q.db.QueryRow(ctx, deleteOrder, arg.UserID, arg.ItemID, arg.Quantity)
+	row := q.db.QueryRowContext(ctx, deleteOrder, arg.UserID, arg.ItemID, arg.Quantity)
 	var i Order
 	err := row.Scan(
 		&i.ID,
@@ -147,7 +148,7 @@ WHERE id = $1
 `
 
 func (q *Queries) DeleteUser(ctx context.Context, id string) error {
-	_, err := q.db.Exec(ctx, deleteUser, id)
+	_, err := q.db.ExecContext(ctx, deleteUser, id)
 	return err
 }
 
@@ -156,8 +157,8 @@ SELECT id, name, description, price, created_at, updated_at FROM items
 WHERE id = $1 LIMIT 1
 `
 
-func (q *Queries) GetItemByID(ctx context.Context, id pgtype.UUID) (Item, error) {
-	row := q.db.QueryRow(ctx, getItemByID, id)
+func (q *Queries) GetItemByID(ctx context.Context, id uuid.UUID) (Item, error) {
+	row := q.db.QueryRowContext(ctx, getItemByID, id)
 	var i Item
 	err := row.Scan(
 		&i.ID,
@@ -170,6 +171,33 @@ func (q *Queries) GetItemByID(ctx context.Context, id pgtype.UUID) (Item, error)
 	return i, err
 }
 
+const getItemIds = `-- name: GetItemIds :many
+SELECT id FROM items
+`
+
+func (q *Queries) GetItemIds(ctx context.Context) ([]uuid.UUID, error) {
+	rows, err := q.db.QueryContext(ctx, getItemIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getItems = `-- name: GetItems :many
 SELECT id, name, description, price, created_at, updated_at FROM items LIMIT $1 OFFSET $2
 `
@@ -180,7 +208,7 @@ type GetItemsParams struct {
 }
 
 func (q *Queries) GetItems(ctx context.Context, arg GetItemsParams) ([]Item, error) {
-	rows, err := q.db.Query(ctx, getItems, arg.Limit, arg.Offset)
+	rows, err := q.db.QueryContext(ctx, getItems, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -200,6 +228,9 @@ func (q *Queries) GetItems(ctx context.Context, arg GetItemsParams) ([]Item, err
 		}
 		items = append(items, i)
 	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -211,8 +242,8 @@ SELECT id, user_id, item_id, quantity, created_at FROM orders
 WHERE id = $1 LIMIT 1
 `
 
-func (q *Queries) GetOrderByID(ctx context.Context, id pgtype.UUID) (Order, error) {
-	row := q.db.QueryRow(ctx, getOrderByID, id)
+func (q *Queries) GetOrderByID(ctx context.Context, id uuid.UUID) (Order, error) {
+	row := q.db.QueryRowContext(ctx, getOrderByID, id)
 	var i Order
 	err := row.Scan(
 		&i.ID,
@@ -234,7 +265,7 @@ type GetOrdersParams struct {
 }
 
 func (q *Queries) GetOrders(ctx context.Context, arg GetOrdersParams) ([]Order, error) {
-	rows, err := q.db.Query(ctx, getOrders, arg.Limit, arg.Offset)
+	rows, err := q.db.QueryContext(ctx, getOrders, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -252,6 +283,9 @@ func (q *Queries) GetOrders(ctx context.Context, arg GetOrdersParams) ([]Order, 
 			return nil, err
 		}
 		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -265,13 +299,13 @@ WHERE user_id = $1 LIMIT $2 OFFSET $3
 `
 
 type GetOrdersByUserIDParams struct {
-	UserID pgtype.Text
+	UserID sql.NullString
 	Limit  int32
 	Offset int32
 }
 
 func (q *Queries) GetOrdersByUserID(ctx context.Context, arg GetOrdersByUserIDParams) ([]Order, error) {
-	rows, err := q.db.Query(ctx, getOrdersByUserID, arg.UserID, arg.Limit, arg.Offset)
+	rows, err := q.db.QueryContext(ctx, getOrdersByUserID, arg.UserID, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -290,6 +324,9 @@ func (q *Queries) GetOrdersByUserID(ctx context.Context, arg GetOrdersByUserIDPa
 		}
 		items = append(items, i)
 	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -302,7 +339,7 @@ WHERE email = $1 LIMIT 1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
-	row := q.db.QueryRow(ctx, getUserByEmail, email)
+	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -321,7 +358,7 @@ WHERE id = $1 LIMIT 1
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id string) (User, error) {
-	row := q.db.QueryRow(ctx, getUserByID, id)
+	row := q.db.QueryRowContext(ctx, getUserByID, id)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -351,7 +388,7 @@ type UpdateAuthorParams struct {
 }
 
 func (q *Queries) UpdateAuthor(ctx context.Context, arg UpdateAuthorParams) error {
-	_, err := q.db.Exec(ctx, updateAuthor,
+	_, err := q.db.ExecContext(ctx, updateAuthor,
 		arg.ID,
 		arg.Name,
 		arg.Email,
@@ -370,14 +407,14 @@ WHERE id = $1
 `
 
 type UpdateItemParams struct {
-	ID          pgtype.UUID
+	ID          uuid.UUID
 	Name        string
-	Description pgtype.Text
+	Description sql.NullString
 	Price       int64
 }
 
 func (q *Queries) UpdateItem(ctx context.Context, arg UpdateItemParams) error {
-	_, err := q.db.Exec(ctx, updateItem,
+	_, err := q.db.ExecContext(ctx, updateItem,
 		arg.ID,
 		arg.Name,
 		arg.Description,

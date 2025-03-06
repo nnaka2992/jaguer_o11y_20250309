@@ -2,19 +2,19 @@ package main
 
 import (
 	"context"
-	
-	//	"errors"
-	"fmt"
 	"log"
-	"log/slog"
+	"net/http"
 	"os"
-	"time"
+	"os/signal"
+	"syscall"
 
- 	"go.opentelemetry.io/otel"
-
-	"github.com/nnaka2992/jaguer_o11y_20250307/src/sql"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
+// Create channel to listen for signals.
+var (
+	signalChan chan (os.Signal) = make(chan os.Signal, 1)
+)
 
 
 func main() {
@@ -24,63 +24,38 @@ func main() {
 	}
 	defer shutdown()
 
-	db, err := sql.Open()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
+	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 
-
+	// Start HTTP server.
 	ctx := context.Background()
-
-	slog.InfoContext(ctx, "Starting example")
-	ctx, span := otel.Tracer(instrumentationName).Start(ctx, "parent")
-	defer span.End()
-	// run 5 times
-	for i := 0; i < 5; i++ {
-		if err = run(db, ctx); err != nil {
-			slog.ErrorContext(ctx, "Example failed", slog.Any("error", err))
-			os.Exit(1)
-		}
+	srv := http.Server{
+		Addr:    ":8080",
+		Handler: nil,
 	}
+	// start the server
+	go func() {
+		http.Handle("/health", otelhttp.NewHandler(http.HandlerFunc(healthHandler), "health"))
+		http.Handle("/user/add", otelhttp.NewHandler(http.HandlerFunc(postUserAddHandler), "postUserAddHandler"))
+		http.Handle("/user", otelhttp.NewHandler(http.HandlerFunc(getUserHandler), "getUserHandler"))
+		http.Handle("/item/add", otelhttp.NewHandler(http.HandlerFunc(postItemAddHandler), "postItemAddHandler"))
+		http.Handle("/item", otelhttp.NewHandler(http.HandlerFunc(getItemHandler), "getItemHandler"))
+		if err := srv.ListenAndServe(); err != nil {
+			log.Printf("server exited: %+v", err)
+		}
+	}()
+	
+	// Receive output from signalChan.
+	sig := <-signalChan
+	log.Printf("%s signal caught. Graceful Shutdown.", sig)
+
+	// Gracefully shutdown the server by waiting on existing requests (except websockets).
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Printf("server shutdown failed: %+v", err)
+	}
+	log.Print("server exited")
 }
 
-func run(db *sql.DB, ctx context.Context) error {
-	ctx, span := otel.Tracer(instrumentationName).Start(ctx, "child")
-	defer span.End()
-	err := query(ctx, db)
-	if err != nil {
-			span.RecordError(err)
-		return err
-	}
-	return nil
-}
-
-func query(ctx context.Context, db *sql.DB) error {
-	// setup table named tab
-//	_, errn := db.ExecContext(ctx, "create table if not exists tab (greeting text)")
-//	if errn != nil {
-//		return errn
-//	}
-//	_, errn = db.ExecContext(ctx, "insert into tab (greeting) values ('Hello, world!')")
-//	if errn != nil {
-//		return errn
-//	}
-	// Make a query
-
-	rows, err := db.QueryContext(ctx, "select * from tab")
-	if err != nil {
-		return err
-	}
-	defer rows.Close()
-
- var greeting string
-	for rows.Next() {
-		err = rows.Scan(&greeting)
-		if err != nil {
-			return err
-		}
-	}
-	fmt.Println(greeting)
-	return nil
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("OK"))
 }

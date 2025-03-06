@@ -7,6 +7,7 @@ toolchain go1.24.0
 require (
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace v1.27.0
 	github.com/XSAM/otelsql v0.37.0
+	github.com/go-faker/faker/v4 v4.6.0
 	github.com/jackc/pgx/v5 v5.7.2
 	go.opentelemetry.io/contrib/detectors/gcp v1.31.0
 	go.opentelemetry.io/otel v1.34.0
@@ -49,4 +50,4 @@ require (
 	google.golang.org/protobuf v1.36.3 // indirect
 )
 
-replace github.com/nnaka2992/jaguer_o11y_20250309/src/sql => ./sql
+// replace "github.com/nnaka2992/jaguer_o11y_20250309/src/sql" v0.0.0 => ./sql

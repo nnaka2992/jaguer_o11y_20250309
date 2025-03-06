@@ -26,6 +26,9 @@ WHERE id = $1;
 DELETE FROM users
 WHERE id = $1;
 
+-- name: GetItemIds :many
+SELECT id FROM items;
+
 -- name: GetItems :many
 SELECT * FROM items LIMIT $1 OFFSET $2;
 

@@ -5,24 +5,27 @@
 package sql
 
 import (
-	"github.com/jackc/pgx/v5/pgtype"
+	"database/sql"
+	"time"
+
+	"github.com/google/uuid"
 )
 
 type Item struct {
-	ID          pgtype.UUID
+	ID          uuid.UUID
 	Name        string
-	Description pgtype.Text
+	Description sql.NullString
 	Price       int64
-	CreatedAt   pgtype.Timestamp
-	UpdatedAt   pgtype.Timestamp
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
 type Order struct {
-	ID        pgtype.UUID
-	UserID    pgtype.Text
-	ItemID    pgtype.UUID
+	ID        uuid.UUID
+	UserID    sql.NullString
+	ItemID    uuid.NullUUID
 	Quantity  int32
-	CreatedAt pgtype.Timestamp
+	CreatedAt time.Time
 }
 
 type User struct {
@@ -30,6 +33,6 @@ type User struct {
 	Name      string
 	Email     string
 	Password  string
-	CreatedAt pgtype.Timestamp
-	UpdatedAt pgtype.Timestamp
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
