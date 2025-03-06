@@ -19,12 +19,14 @@ services:
   client:
     build:
       dockerfile: Dockerfile
-      context: . 
+      context: ./src 
     environment:
        DATABASE_URL: "postgres://postgres:postgres@cloud-sql-proxy:5432/postgres"
        GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT?}
     depends_on:
       cloud-sql-proxy:
         condition: service_started
+    ports:
+      - "8080:8080"
 volumes:
   logs:

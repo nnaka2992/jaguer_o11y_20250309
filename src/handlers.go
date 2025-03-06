@@ -41,7 +41,7 @@ func postUserAddHandler(w http.ResponseWriter, r *http.Request) {
 	// return response to client
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(fmt.Sprintf(`{"id": "%s", "name": "%s", "email": "%s"}`, user.ID, user.Name, user.Email)))
+	//	w.Write([]byte(fmt.Sprintf(`{"id": "%s", "name": "%s", "email": "%s"}`, user.ID, user.Name, user.Email)))
 }
 
 func getUserHandler(w http.ResponseWriter, r *http.Request) {
@@ -68,7 +68,7 @@ func getUserHandler(w http.ResponseWriter, r *http.Request) {
 	// return response to client
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(fmt.Sprintf(`{"id": "%s", "name": "%s", "email": "%s"}`, user.ID, user.Name, user.Email)))
+	// w.Write([]byte(fmt.Sprintf(`{"id": "%s", "name": "%s", "email": "%s"}`, user.ID, user.Name, user.Email)))
 }
 
 func postItemAddHandler(w http.ResponseWriter, r *http.Request) {
@@ -90,7 +90,7 @@ func postItemAddHandler(w http.ResponseWriter, r *http.Request) {
 	// return response to client
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(fmt.Sprintf(`{"id": "%s", "name": "%s", "description": "%s", "price": %d}`, item.ID, item.Name, item.Description, item.Price)))
+	//	w.Write([]byte(fmt.Sprintf(`{"id": "%s", "name": "%s", "description": "%s", "price": %d}`, item.ID, item.Name, item.Description, item.Price)))
 }
 
 func getItemHandler(w http.ResponseWriter, r *http.Request) {
@@ -124,7 +124,7 @@ func getItemHandler(w http.ResponseWriter, r *http.Request) {
 		// return response to client
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(fmt.Sprintf(`{"items": %v}`, items)))
+		// w.Write([]byte(fmt.Sprintf(`{"items": %v}`, items)))
 	}
 	// get item from database
 	uuid, err := uuid.Parse(id)
@@ -140,5 +140,5 @@ func getItemHandler(w http.ResponseWriter, r *http.Request) {
 	// return response to client
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(fmt.Sprintf(`{"id": "%s", "name": "%s", "description": "%s", "price": %d}`, item.ID, item.Name, item.Description, item.Price)))
+	// w.Write([]byte(fmt.Sprintf(`{"id": "%s", "name": "%s", "description": "%s", "price": %d}`, item.ID, item.Name, item.Description, item.Price)))
 }
