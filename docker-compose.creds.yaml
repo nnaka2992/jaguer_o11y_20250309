@@ -1,0 +1,29 @@
+# Use this compose file along with docker-compose.yaml to pass a credentials file from the host
+# into the collector container:
+#
+# ```
+# GOOGLE_CLOUD_PROJECT="otel-quickstart-demos" \
+# GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcloud/application_default_credentials.json" \
+# USERID="$(id -u)" \
+# docker compose -f docker-compose.yaml -f docker-compose.creds.yaml up --abort-on-container-exit
+# ```
+
+services:
+  cloud-sql-proxy:
+    user: "501"
+    volumes:
+      - ${GOOGLE_APPLICATION_CREDENTIALS?}:/${GOOGLE_APPLICATION_CREDENTIALS}:ro
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS
+  otelcol:
+    user: "501"
+    volumes:
+      - ${GOOGLE_APPLICATION_CREDENTIALS?}:${GOOGLE_APPLICATION_CREDENTIALS}:ro
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS
+  client:
+    user: "501"
+    volumes:
+      - ${GOOGLE_APPLICATION_CREDENTIALS?}:/${GOOGLE_APPLICATION_CREDENTIALS}:ro
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS

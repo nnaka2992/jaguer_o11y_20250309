@@ -1,0 +1,30 @@
+services:
+  cloud-sql-proxy:
+    image: gcr.io/cloud-sql-connectors/cloud-sql-proxy
+    command:
+      - "--address"
+      - "0.0.0.0"
+      - "nnaka2992-jaguer-o11y-20250307:asia-northeast1:otel-sample"
+    restart: always
+    ports:
+      - "5432:5432"
+  otelcol:
+    image: otel/opentelemetry-collector-contrib:0.115.1
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+      - logs:/var/log:ro
+    environment:
+      - GOOGLE_CLOUD_QUOTA_PROJECT
+      - GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT?}
+  client:
+    build:
+      dockerfile: Dockerfile
+      context: . 
+    environment:
+       DATABASE_URL: "postgres://postgres:postgres@cloud-sql-proxy:5432/postgres"
+       GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT?}
+    depends_on:
+      cloud-sql-proxy:
+        condition: service_started
+volumes:
+  logs:
